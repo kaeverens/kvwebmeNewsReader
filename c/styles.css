@@ -1,0 +1,27 @@
+*{
+	font-family:sans-serif;
+}
+.title{
+	vertical-align:top;
+	font-weight:bold;
+	padding-left:5px;
+}
+td{
+	vertical-align:top;
+}
+.tags{
+	color:#666;
+	font-style:italic;
+	font-size:small;
+	padding-left:5px;
+}
+.date{
+	color:#666;
+	font-style:italic;
+	font-size:small;
+	text-align:right;
+}
+.seperator{
+	border-top:1px solid #666;
+	height:30px;
+}
