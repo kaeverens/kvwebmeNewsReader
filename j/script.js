@@ -6,32 +6,6 @@ function onDeviceReady() {
 			},
 			true
 		);
-	// { set up databases
-	setUpDatabases();
-	// }
-}
-function setUpDatabases() {
-	window.indexedDB = window.indexedDB || window.mozIndexedDB
-		|| window.webkitIndexedDB || window.msIndexedDB;
-	window.IDBTransaction = window.IDBTransaction
-		|| window.webkitIDBTransaction || window.msIDBTransaction;
-	window.IDBKeyRange = window.IDBKeyRange
-		|| window.webkitIDBKeyRange || window.msIDBKeyRange
-	if (!window.indexedDB) {
-		alert('This device does not support IndexedDB');
-		return;
-	}
-	window.db=window.indexedDB.open('db2', 2);
-	window.db.onupgradeneeded=function(e) {
-		var db=e.target.result;
-		var objectStore=db.createObjectStore('blog');
-		objectStore.createIndex('pdate', 'pdate', { 'unique': false });
-		objectStore.createIndex('id', 'id', { 'unique': true });
-		var objectStore=db.createObjectStore('ads');
-		objectStore.createIndex('type', 'type', { 'unique': false });
-		objectStore.createIndex('last_viewed', 'last_viewed', { 'unique': false});
-		objectStore.createIndex('id', 'id', { 'unique': true});
-	};
 }
 // { setZeroTimeout (very fast replacement for setTimeout)
 var setZeroTimeout=function(a){if(a.postMessage){var b=[],c="asc0tmot",d=function(a){b.push(a),postMessage(c,"*")},e=function(d){if(d.source==a&&d.data==c){d.stopPropagation&&d.stopPropagation();if(b.length)try{b.shift()()}catch(e){setTimeout(function(a){return function(){throw a.stack||a}}(e),0)}b.length&&postMessage(c,"*")}};if(a.addEventListener)return addEventListener("message",e,!0),d;if(a.attachEvent)return attachEvent("onmessage",e),d}return setTimeout}(window);
@@ -76,26 +50,32 @@ window.backButtonHandler=function(){
 
 $(function() {
 	function init() {
-		if (window.db==undefined || !window.db || window.db.readyState!='done') {
-			return setTimeout(init, 100);
-		}
 		var html='<div id="ads"/><div id="blog-articles"/>';
 		$('body').empty().append(html);
-//		blogRefresh();
+		blogRefresh();
 		blogDownload();
 	}
-	init();
+	$.indexedDB(
+			'kvwebmeNewsReader',
+			{
+				'schema':{
+					'1': function(versionTransaction) {
+						versionTransaction
+							.createObjectStore( 'blog', { 'keyPath':'id' })
+							.createIndex('pdate')
+							.createIndex('id', {'unique': true});
+					}
+				}
+			}
+		)
+		.done(init);
 });
 function blogRefresh() {
 	var $wrapper=$('#blog-articles');
-	var db=window.db.result;
-	var transaction=db.transaction(['blog']);
-	var objectStore=transaction.objectStore('blog');
 	var stories=[];
-	objectStore.openCursor().onsuccess=function(e) {
-		var cursor=e.target.result;
-		if (cursor) {
-			var row=cursor.value;
+	$.indexedDB('kvwebmeNewsReader').objectStore('blog')
+		.each(function(result) {
+			var row=result.value;
 			var img='';
 			if (row.image) {
 				img='<img src="'+config.site+row.image+'" style="width:100%"/>';
@@ -111,14 +91,12 @@ function blogRefresh() {
 				+'<td class="date">'+d+'</td></tr>'
 				+'<tr><td colspan="3" class="seperator">&nbsp;</td></tr>';
 			stories.push(html);
-			cursor.continue();
-		}
-		else {
+		})
+		.done(function() {
 			$wrapper.empty().append(
 				'<table style="width:100%">'+stories.join('')+'</table>'
 			);
-		}
-	}
+		});
 	$('body').scrollTop(0);
 }
 function blogDownload() {
@@ -131,30 +109,28 @@ function blogDownload() {
 	$.post(
 		config.site+'/a/p=blog/f=getRecent',
 		function(ret) {
-			var db=window.db.result;
-			var transaction=db.transaction(['blog'], 'readwrite');
-			transaction.oncomplete=function() {
-				if (newStories) {
-					setZeroTimeout(blogRefresh);
-				}
-			}
-			var objectStore=transaction.objectStore('blog');
 			var newStories=0;
-			for (var i in ret) {
-				var row=ret[i];
-				row.id=+row.id;
-				try{
-					var request=objectStore.add(row, row.id);
-					request.onerror=function(e) {
-					};
-					request.onsuccess=function(e) {
-						newStories++;
+			$.indexedDB('kvwebmeNewsReader')
+				.transaction('blog')
+				.then(
+					function() {
+						console.log(newStories, 'new stories');
+						if (newStories) {
+							setZeroTimeout(blogRefresh);
+						}
+					},
+					function() {
+					},
+					function(transaction) {
+						var blogs=transaction.objectStore('blog');
+						$.each(ret, function(k, v) {
+							v.id=+v.id;
+							blogs.add(v).ondone=function() {
+								newStories++;
+							}
+						});
 					}
-				}
-				catch(e) {
-					return;
-				}
-			}
+				);
 		}
 	);
 }
