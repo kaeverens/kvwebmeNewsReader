@@ -76,12 +76,12 @@ window.backButtonHandler=function(){
 
 $(function() {
 	function init() {
-		if (!window.db || window.db.readyState!='done') {
+		if (window.db==undefined || !window.db || window.db.readyState!='done') {
 			return setTimeout(init, 100);
 		}
 		var html='<div id="ads"/><div id="blog-articles"/>';
 		$('body').empty().append(html);
-		blogRefresh();
+//		blogRefresh();
 		blogDownload();
 	}
 	init();

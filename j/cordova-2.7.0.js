@@ -6807,7 +6807,28 @@ require('cordova/channel').onNativeReady.fire();
     }
 
 
-    finishPluginLoading();
+    // Try to XHR the cordova_plugins.json file asynchronously.
+    try { // we commented we were going to try, so let us actually try and catch
+        var xhr = new context.XMLHttpRequest();
+        xhr.onload = function() {
+            // If the response is a JSON string which composes an array, call handlePluginsObject.
+            // If the request fails, or the response is not a JSON array, just call finishPluginLoading.
+            var obj = this.responseText && JSON.parse(this.responseText);
+            if (obj && obj instanceof Array && obj.length > 0) {
+                handlePluginsObject(obj);
+            } else {
+                finishPluginLoading();
+            }
+        };
+        xhr.onerror = function() {
+            finishPluginLoading();
+        };
+        xhr.open('GET', 'cordova_plugins.json', true); // Async
+        xhr.send();
+    }
+    catch(err){
+        finishPluginLoading();
+    }
 }(window));
 
 
