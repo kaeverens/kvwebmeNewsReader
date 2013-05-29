@@ -6,6 +6,20 @@ function onDeviceReady() {
 			},
 			true
 		);
+	$.indexedDB(
+			'kvwebmeNewsReader',
+			{
+				'schema':{
+					'1': function(versionTransaction) {
+						versionTransaction
+							.createObjectStore( 'blog', { 'keyPath':'id' })
+							.createIndex('pdate')
+							.createIndex('id', {'unique': true});
+					}
+				}
+			}
+		)
+		.done(init);
 }
 // { setZeroTimeout (very fast replacement for setTimeout)
 var setZeroTimeout=function(a){if(a.postMessage){var b=[],c="asc0tmot",d=function(a){b.push(a),postMessage(c,"*")},e=function(d){if(d.source==a&&d.data==c){d.stopPropagation&&d.stopPropagation();if(b.length)try{b.shift()()}catch(e){setTimeout(function(a){return function(){throw a.stack||a}}(e),0)}b.length&&postMessage(c,"*")}};if(a.addEventListener)return addEventListener("message",e,!0),d;if(a.attachEvent)return attachEvent("onmessage",e),d}return setTimeout}(window);
@@ -48,28 +62,12 @@ else {
 window.backButtonHandler=function(){
 }
 
-$(function() {
-	function init() {
-		var html='<div id="ads"/><div id="blog-articles"/>';
-		$('body').empty().append(html);
-		blogRefresh();
-		blogDownload();
-	}
-	$.indexedDB(
-			'kvwebmeNewsReader',
-			{
-				'schema':{
-					'1': function(versionTransaction) {
-						versionTransaction
-							.createObjectStore( 'blog', { 'keyPath':'id' })
-							.createIndex('pdate')
-							.createIndex('id', {'unique': true});
-					}
-				}
-			}
-		)
-		.done(init);
-});
+function init() {
+	var html='<div id="ads"/><div id="blog-articles"/>';
+	$('body').empty().append(html);
+	blogRefresh();
+	blogDownload();
+}
 function blogRefresh() {
 	var $wrapper=$('#blog-articles');
 	var stories=[];
