@@ -66,14 +66,14 @@ function blogRefresh() {
 			$.each(results.stories, function(k, row) {
 				var img='';
 				if (row.image) {
-					img='<img src="'+config.site+row.image+'" style="width:100%"/>';
+					img='<img src="'+config.cdn+row.image+'" style="width:100%"/>';
 				}
 				var d=row.pdate
 					.replace(/....-0*([0-9]*)-0*([0-9]*) (..:..).*/, '$1|$2|$3');
 				var bits=d.split('|');
 				d=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][bits[0]-1]+' '+bits[1]+' '+bits[2];
 				var html='<tr data-id="'+row.id+'" id="blog-header-'+row.id+'">'
-					+'<td style="width:20%" rowspan="2">'
+					+'<td style="width:20%;min-width:80px;" rowspan="2">'
 					+img+'</td>'
 					+'<td colspan="2" class="title">'+row.title+'</td></tr>'
 					+'<tr data-id="'+row.id+'"><td class="tags">'+row.tags+'</td>'
@@ -120,7 +120,13 @@ function blogBodyShow(id) {
 				return;
 			}
 			$('.blog-body').empty();
-			$('#blog-body-'+id).html(result.body);
+			$('#blog-body-'+id)
+				.html(
+					result.body.replace(
+						/<img([^>]*)src="\//g,
+						'<img style="width:90%!important"$1src="'+config.cdn+'/'
+					)
+				);
 			$('body').scrollTop($('#blog-header-'+id).offset().top);
 		});
 	});
